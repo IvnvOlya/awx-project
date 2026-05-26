@@ -1,0 +1,36 @@
+---
+- name: Базовое управление сервером
+  hosts: all
+  become: yes               # Требует привилегии root
+  gather_facts: yes         # AWX покажет собранные факты в интерфейсе
+
+  tasks:
+    - name: 1. Обновление кэша пакетного менеджера (apt)
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: 2. Установка базового набора утилит
+      ansible.builtin.package:
+        name:
+          - htop
+          - curl
+          - git
+        state: present
+
+    - name: 3. Создание файла с информацией о сервере
+      ansible.builtin.copy:
+        content: |
+          Сервер: {{ ansible_hostname }}
+          ОС: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Ядро: {{ ansible_kernel }}
+          Плейбук выполнен через AWX.
+        dest: /tmp/awx_study_report.txt
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: 4. Вывод собранной информации в лог задачи (debug)
+      ansible.builtin.debug:
+        msg: "Система {{ ansible_hostname }} успешно проверена. Утилиты установлены."
