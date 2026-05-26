@@ -1,7 +1,7 @@
 ---
 - name: Базовое управление сервером
   hosts: all
-  become: yes               # Требует привилегии root
+  become: no              # Требует привилегии root
   gather_facts: yes         # AWX покажет собранные факты в интерфейсе
 
   tasks:
