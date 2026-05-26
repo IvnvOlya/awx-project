@@ -1,52 +1,27 @@
 ---
-- name: Базовое управление сервером
+- name: Тестирование окружения и доступа AWX
   hosts: all
-  become: no
   gather_facts: yes
+  become: no
 
   tasks:
-    - name: Debug OS family (для диагностики)
-      ansible.builtin.debug:
-        msg: "OS family: {{ ansible_facts['os_family'] }}"
-    - name: Обновление кэша пакетного менеджера (apt)
-      ansible.builtin.apt:
-        update_cache: yes
-        cache_valid_time: 3600
-      when: ansible_facts['os_family'] == "Debian"
+    - name: ТЕСТ 1 | Проверка связи (Ping)
+      ansible.builtin.ping:
 
-    - name: Установка базового набора утилит (Debian)
-      ansible.builtin.apt:
-        name:
-          - htop
-          - curl
-          - git
-        state: present
-      when: ansible_facts['os_family'] == "Debian"
-
-    - name: Установка базового набора утилит (RedHat-based)
-      ansible.builtin.package:
-        name:
-          - htop
-          - curl
-          - git
-        state: present
-      when: ansible_facts['os_family'] == "RedHat"
-
-    - name: Создание файла с информацией о сервере
-      ansible.builtin.copy:
-        content: |
-          Сервер: {{ ansible_hostname }}
-          ОС: {{ ansible_distribution }} {{ ansible_distribution_version }}
-          Family: {{ ansible_facts['os_family'] }}
-          Ядро: {{ ansible_kernel }}
-          Плейбук выполнен через AWX.
-        dest: /tmp/awx_study_report.txt
-        mode: '0644'
-
-    - name: Вывод результата в AWX лог
+    - name: ТЕСТ 2 | Сбор информации о целевой ОС
       ansible.builtin.debug:
         msg:
-          - "Сервер {{ ansible_hostname }} проверен"
-          - "OS: {{ ansible_distribution }}"
-          - "Family: {{ ansible_facts['os_family'] }}"
-          - "Статус: OK"
+          - "Тип ОС: {{ ansible_distribution }}"
+          - "Версия ОС: {{ ansible_distribution_version }}"
+          - "Ядро: {{ ansible_kernel }}"
+
+    - name: ТЕСТ 3 | Проверка выполнения команд локально (на Pod'е контейнера AWX-EE)
+      delegate_to: localhost
+      ansible.builtin.command:
+        cmd: whoami
+      register: local_user
+      changed_when: false
+
+    - name: ТЕСТ 4 | Вывод имени пользователя контейнера
+      ansible.builtin.debug:
+        var: local_user.stdout
